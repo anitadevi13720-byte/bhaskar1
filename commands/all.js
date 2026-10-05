@@ -8,6 +8,20 @@ CMD*/
 let state = User.getProperty('ADMIN_STATE');
 if (!state || !message) { return; }
 
+if (state == 'EDIT_WELCOME') {
+    Bot.setProperty('welcomeText', message, 'string');
+    Bot.sendMessage('✅ Welcome text updated!');
+    User.setProperty('ADMIN_STATE', '', 'string');
+    return;
+}
+
+if (state == 'EDIT_RDP') {
+    Bot.setProperty('rdpText', message, 'string');
+    Bot.sendMessage('✅ RDP text updated!');
+    User.setProperty('ADMIN_STATE', '', 'string');
+    return;
+}
+
 if (state == 'ADD_POINTS') {
     let inp = message.split(' ');
     let tgt = inp[0];

@@ -6,12 +6,8 @@
   folder: 
 CMD*/
 let buttons = [
-    [{ text: "➕ Add Channel", callback_data: "/admin_fc_add" }],
-    [{ text: "➖ Remove Channel", callback_data: "/admin_fc_remove" }],
-    [{ text: "📋 List Channels", callback_data: "/admin_fc_list" }]
+    [{ title: "➕ Add Channel", command: "/admin_fc_add" }],
+    [{ title: "➖ Remove Channel", command: "/admin_fc_remove" }],
+    [{ title: "📋 List Channels", command: "/admin_fc_list" }]
 ];
-Api.sendMessage({
-    text: "📣 **Force Channels Management**\nChoose an option:",
-    parse_mode: "Markdown",
-    reply_markup: { inline_keyboard: buttons }
-});
+Bot.sendInlineKeyboard(buttons, "📣 **Force Channels Management**\nChoose an option:");

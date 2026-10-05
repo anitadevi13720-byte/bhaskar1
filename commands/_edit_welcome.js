@@ -1,2 +1,2 @@
 Bot.sendMessage('📝 **Send the new Welcome Text**:');
-Bot.runCommand('/do_edit_welcome');
+User.setProperty('ADMIN_STATE', 'EDIT_WELCOME', 'string');

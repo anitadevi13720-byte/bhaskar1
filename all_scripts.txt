@@ -1,0 +1,597 @@
+﻿
+
+--- all.js ---
+
+/*CMD
+  command: *
+  help: 
+  need_reply: false
+  auto_retry_time: 
+  folder: 
+CMD*/
+let state = User.getProperty('ADMIN_STATE');
+if (!state || !message) { return; }
+
+if (state == 'ADD_POINTS') {
+    let inp = message.split(' ');
+    let tgt = inp[0];
+    let addP = parseInt(inp[1]);
+    if(tgt && addP) {
+        let currBal = Bot.getProperty('balance_' + tgt, 0);
+        Bot.setProperty('balance_' + tgt, currBal + addP, 'integer');
+        Bot.sendMessage('âœ… Added ' + addP + ' points to ' + tgt);
+        Api.sendMessage({chat_id: tgt, text: 'ðŸŽ‰ Admin added ' + addP + ' points to your balance!'});
+    } else { Bot.sendMessage('âŒ Invalid format.'); }
+    User.setProperty('ADMIN_STATE', '', 'string');
+    return;
+}
+
+if (state == 'RM_POINTS') {
+    let inp = message.split(' ');
+    let tgt = inp[0];
+    let rmP = parseInt(inp[1]);
+    if(tgt && rmP) {
+        let currBal = Bot.getProperty('balance_' + tgt, 0);
+        Bot.setProperty('balance_' + tgt, currBal - rmP, 'integer');
+        Bot.sendMessage('âœ… Removed ' + rmP + ' points from ' + tgt);
+    } else { Bot.sendMessage('âŒ Invalid format.'); }
+    User.setProperty('ADMIN_STATE', '', 'string');
+    return;
+}
+
+if (state == 'BAN') {
+    Bot.setProperty('banned_' + message, true, 'boolean');
+    Bot.sendMessage('âœ… User ' + message + ' has been banned.');
+    User.setProperty('ADMIN_STATE', '', 'string');
+    return;
+}
+
+if (state == 'UNBAN') {
+    Bot.setProperty('banned_' + message, false, 'boolean');
+    Bot.sendMessage('âœ… User ' + message + ' has been unbanned.');
+    User.setProperty('ADMIN_STATE', '', 'string');
+    return;
+}
+
+if (state == 'CHECK_KEY') {
+    let status = Bot.getProperty('key_' + message);
+    if (!status) { Bot.sendMessage('âŒ Invalid Key.'); }
+    else if (status == 'USED') { Bot.sendMessage('ðŸ”‘ Key: ' + message + ' \nStatus: USED'); }
+    else { 
+        Bot.sendMessage('ðŸ”‘ Key: ' + message + ' \nStatus: UNUSED'); 
+        Bot.setProperty('key_' + message, 'USED', 'string');
+    }
+    User.setProperty('ADMIN_STATE', '', 'string');
+    return;
+}
+
+if (state == 'BROADCAST') {
+    Bot.sendMessageToAllPrivateChats(message);
+    Bot.sendMessage('âœ… Broadcast sent.');
+    User.setProperty('ADMIN_STATE', '', 'string');
+    return;
+}
+
+if (state == 'ADD_CHANNEL') {
+    let inp = message.split(' ');
+    if (inp.length >= 2) {
+        let ch = Bot.getProperty('forceChannels', []);
+        ch.push({id: inp[0], url: inp[1], name: inp[0], type: "Channel", enabled: true});
+        Bot.setProperty('forceChannels', ch, 'json');
+        Bot.sendMessage('âœ… Force channel added!');
+    } else {
+        Bot.sendMessage('âŒ Invalid format.');
+    }
+    User.setProperty('ADMIN_STATE', '', 'string');
+    return;
+}
+
+if (state == 'REMOVE_CHANNEL') {
+    let ch = Bot.getProperty('forceChannels', []);
+    let newCh = [];
+    let found = false;
+    for (let i = 0; i < ch.length; i++) {
+        if (ch[i].id != message && ch[i].name != message) {
+            newCh.push(ch[i]);
+        } else {
+            found = true;
+        }
+    }
+    if (found) {
+        Bot.setProperty('forceChannels', newCh, 'json');
+        Bot.sendMessage('âœ… Force channel removed!');
+    } else {
+        Bot.sendMessage('âŒ Channel not found.');
+    }
+    User.setProperty('ADMIN_STATE', '', 'string');
+    return;
+}
+
+
+--- verify_force_join.js ---
+
+/*CMD
+  command: verify_force_join
+  help: 
+  need_reply: false
+  auto_retry_time: 
+  folder: 
+CMD*/
+if (request && request.data) {
+  Api.answerCallbackQuery({ callback_query_id: request.id, text: "Checking..." });
+}
+
+let channels = Bot.getProperty("forceChannels", []);
+if (channels.length == 0) {
+  Bot.runCommand("/start", {is_verified: true});
+  return;
+}
+
+User.setProperty("fc_pending_list", channels, "json");
+User.setProperty("fc_verify_index", 0, "integer");
+User.setProperty("fc_still_pending", [], "json");
+Bot.runCommand("_check_fc_step");
+
+
+--- _admin.js ---
+
+let adminIds = ['8710308658', '8789936408'];
+if (adminIds.includes(user.telegramid.toString())) {
+    let adKb = [
+        [{title: 'ðŸ“¢ Broadcast', command: '/admin_broadcast'}, {title: 'âš™ï¸ Edit Settings', command: '/admin_settings'}],
+        [{title: 'âž• Add Points', command: '/admin_addpoints'}, {title: 'âž– Remove Points', command: '/admin_rmpoints'}],
+        [{title: 'ðŸš« Ban User', command: '/admin_ban'}, {title: 'âœ… Unban User', command: '/admin_unban'}],
+        [{title: 'ðŸ” Check Key', command: '/admin_checkkey'}, {title: 'ðŸ“£ Force Channels', command: '/admin_channels'}]
+    ];
+    Bot.sendInlineKeyboard(adKb, 'ðŸ›  **ADMIN PANEL**\nChoose an option:');
+} else {
+    Bot.sendMessage('âŒ You are not an admin.');
+}
+
+
+--- _admin_addpoints.js ---
+
+/*CMD
+  command: /admin_addpoints
+  help: 
+  need_reply: false
+  auto_retry_time: 
+  folder: 
+CMD*/
+Bot.sendMessage('âž• Send User ID and Points to add (Format: UserID Points)');
+User.setProperty('ADMIN_STATE', 'ADD_POINTS', 'string');
+
+
+--- _admin_ban.js ---
+
+/*CMD
+  command: /admin_ban
+  help: 
+  need_reply: false
+  auto_retry_time: 
+  folder: 
+CMD*/
+Bot.sendMessage('ðŸš« Send User ID to ban:');
+User.setProperty('ADMIN_STATE', 'BAN', 'string');
+
+
+--- _admin_broadcast.js ---
+
+/*CMD
+  command: /admin_broadcast
+  help: 
+  need_reply: false
+  auto_retry_time: 
+  folder: 
+CMD*/
+Bot.sendMessage('ðŸ“¢ Send the message you want to broadcast to all users:');
+User.setProperty('ADMIN_STATE', 'BROADCAST', 'string');
+
+
+--- _admin_channels.js ---
+
+/*CMD
+  command: /admin_channels
+  help: 
+  need_reply: false
+  auto_retry_time: 
+  folder: 
+CMD*/
+let buttons = [
+    [{ text: "âž• Add Channel", callback_data: "/admin_fc_add" }],
+    [{ text: "âž– Remove Channel", callback_data: "/admin_fc_remove" }],
+    [{ text: "ðŸ“‹ List Channels", callback_data: "/admin_fc_list" }]
+];
+Api.sendMessage({
+    text: "ðŸ“£ **Force Channels Management**\nChoose an option:",
+    parse_mode: "Markdown",
+    reply_markup: { inline_keyboard: buttons }
+});
+
+
+--- _admin_checkkey.js ---
+
+/*CMD
+  command: /admin_checkkey
+  help: 
+  need_reply: false
+  auto_retry_time: 
+  folder: 
+CMD*/
+Bot.sendMessage('ðŸ” Send the key you want to verify...\nExample: KEY-A3F-...');
+User.setProperty('ADMIN_STATE', 'CHECK_KEY', 'string');
+
+
+--- _admin_fc_add.js ---
+
+/*CMD
+  command: /admin_fc_add
+  help: 
+  need_reply: false
+  auto_retry_time: 
+  folder: 
+CMD*/
+Bot.sendMessage('ðŸ“£ Send Channel ID/Username and URL to add (Format: @channel https://t.me/channel)');
+User.setProperty('ADMIN_STATE', 'ADD_CHANNEL', 'string');
+
+
+--- _admin_fc_list.js ---
+
+/*CMD
+  command: /admin_fc_list
+  help: 
+  need_reply: false
+  auto_retry_time: 
+  folder: 
+CMD*/
+let ch = Bot.getProperty('forceChannels', []);
+if (ch.length == 0) {
+    Bot.sendMessage('ðŸ“‹ No force channels added.');
+} else {
+    let msg = 'ðŸ“‹ **Force Channels:**\n\n';
+    for (let i = 0; i < ch.length; i++) {
+        msg += (i+1) + '. ' + ch[i].name + '\n';
+    }
+    Bot.sendMessage(msg);
+}
+
+
+--- _admin_fc_remove.js ---
+
+/*CMD
+  command: /admin_fc_remove
+  help: 
+  need_reply: false
+  auto_retry_time: 
+  folder: 
+CMD*/
+Bot.sendMessage('âž– Send the Channel ID or Username to remove (Format: @channel)');
+User.setProperty('ADMIN_STATE', 'REMOVE_CHANNEL', 'string');
+
+
+--- _admin_rmpoints.js ---
+
+/*CMD
+  command: /admin_rmpoints
+  help: 
+  need_reply: false
+  auto_retry_time: 
+  folder: 
+CMD*/
+Bot.sendMessage('âž– Send User ID and Points to remove (Format: UserID Points)');
+User.setProperty('ADMIN_STATE', 'RM_POINTS', 'string');
+
+
+--- _admin_settings.js ---
+
+let settingsKb = [
+    [{title: 'ðŸ“ Edit Welcome Text', command: '/edit_welcome'}, {title: 'ðŸ–¥ Edit RDP Text', command: '/edit_rdp'}]
+];
+Bot.sendInlineKeyboard(settingsKb, 'âš™ï¸ **BOT SETTINGS**\n\nSelect an option to edit text:');
+
+
+--- _admin_unban.js ---
+
+/*CMD
+  command: /admin_unban
+  help: 
+  need_reply: false
+  auto_retry_time: 
+  folder: 
+CMD*/
+Bot.sendMessage('âœ… Send User ID to unban:');
+User.setProperty('ADMIN_STATE', 'UNBAN', 'string');
+
+
+--- _checkjoin.js ---
+
+Bot.runCommand('/start');
+
+
+--- _check_fc_step.js ---
+
+/*CMD
+  command: _check_fc_step
+  help: 
+  need_reply: false
+  auto_retry_time: 
+  folder: 
+CMD*/
+var pending = User.getProperty("fc_pending_list") || [];
+var index = User.getProperty("fc_verify_index") || 0;
+var still_pending = User.getProperty("fc_still_pending") || [];
+
+if (index >= pending.length) {
+  if (still_pending.length > 0) {
+    var msg = "âš ï¸ **In order to use the bot you must join our channel(s):**\n\n";
+    var btns = [];
+    for (var i = 0; i < still_pending.length; i++) {
+      var ch = still_pending[i];
+      btns.push([{ text: "Join Channel", url: ch.url }]);
+    }
+    btns.push([{ text: "âœ… Joined", callback_data: "verify_force_join" }]);
+    
+    Api.sendMessage({
+      text: msg,
+      parse_mode: "Markdown",
+      reply_markup: { inline_keyboard: btns }
+    });
+  } else {
+    if (request && request.message) {
+      Api.deleteMessage({ chat_id: chat.chatid, message_id: request.message.message_id });
+    }
+    Bot.runCommand("/start", {is_verified: true});
+  }
+  return;
+}
+
+var ch = pending[index];
+if (!ch || !ch.id) {
+  User.setProperty("fc_verify_index", index + 1, "integer");
+  Bot.runCommand("_check_fc_step");
+  return;
+}
+
+Api.getChatMember({
+  chat_id: ch.id,
+  user_id: user.telegramid,
+  on_result: "_on_fc_result",
+  on_error: "_on_fc_error"
+});
+
+
+--- _claim.js ---
+
+let args = params.split(' ');
+let price = parseInt(args[0]);
+let prodName = args[1];
+let userBal = Bot.getProperty('balance_' + user.telegramid);
+if (userBal === undefined) { userBal = User.getProperty('balance', 0); Bot.setProperty('balance_' + user.telegramid, userBal, 'integer'); }
+
+if (userBal >= price) {
+    Bot.setProperty('balance_' + user.telegramid, userBal - price, 'integer');
+    let key = 'KEY-' + Math.floor(Math.random()*10000) + '-' + Math.floor(Math.random()*10000);
+    Bot.setProperty('key_' + key, 'VALID', 'string');
+    
+    let orderId = Bot.getProperty('lastOrderId', 1000) + 1;
+    Bot.setProperty('lastOrderId', orderId, 'integer');
+    
+    let order = { orderId: orderId, product: prodName, status: 'completed', key: key };
+    let myOrders = User.getProperty('myOrders', []);
+    myOrders.push(order);
+    User.setProperty('myOrders', myOrders, 'json');
+    
+    let claimMsg = 'ðŸŽ‰ <b>YOUR RDP VERIFICATION KEY IS READY!</b>\n\nðŸ”‘ <b>Key:</b> <code>' + key + '</code>\nðŸ¤– <b>Redeem Bot:</b> @FREE_RDP_VERIFI_BOT';
+    Bot.sendMessage(claimMsg);
+    
+    Api.sendMessage({
+        chat_id: '8710308658',
+        text: 'ðŸ”” <b>NEW KEY GENERATED</b>\nUser: ' + user.telegramid + '\nProduct: ' + prodName + '\nKey: <code>' + key + '</code>',
+        parse_mode: 'HTML'
+    });
+} else {
+    Bot.sendMessage('âŒ Not enough balance!\nYou need ' + price + ' points.');
+}
+
+
+--- _edit_rdp.js ---
+
+Bot.sendMessage('ðŸ–¥ **Send the new Private RDP Text**:');
+Bot.runCommand('/do_edit_rdp');
+
+
+--- _edit_welcome.js ---
+
+Bot.sendMessage('ðŸ“ **Send the new Welcome Text**:');
+Bot.runCommand('/do_edit_welcome');
+
+
+--- _on_fc_error.js ---
+
+/*CMD
+  command: _on_fc_error
+  help: 
+  need_reply: false
+  auto_retry_time: 
+  folder: 
+CMD*/
+var pending = User.getProperty("fc_pending_list") || [];
+var index = User.getProperty("fc_verify_index") || 0;
+var still_pending = User.getProperty("fc_still_pending") || [];
+var ch = pending[index];
+
+if (!ch) {
+  User.setProperty("fc_verify_index", index + 1, "integer");
+  Bot.runCommand("_check_fc_step");
+  return;
+}
+
+still_pending.push(ch);
+User.setProperty("fc_still_pending", still_pending, "json");
+User.setProperty("fc_verify_index", index + 1, "integer");
+Bot.runCommand("_check_fc_step");
+
+
+--- _on_fc_result.js ---
+
+/*CMD
+  command: _on_fc_result
+  help: 
+  need_reply: false
+  auto_retry_time: 
+  folder: 
+CMD*/
+var status = options.result.status;
+var pending = User.getProperty("fc_pending_list") || [];
+var index = User.getProperty("fc_verify_index") || 0;
+var still_pending = User.getProperty("fc_still_pending") || [];
+var ch = pending[index];
+
+if (!ch) {
+  User.setProperty("fc_verify_index", index + 1, "integer");
+  Bot.runCommand("_check_fc_step");
+  return;
+}
+
+if (status != "member" && status != "administrator" && status != "creator") {
+  still_pending.push(ch);
+}
+
+User.setProperty("fc_still_pending", still_pending, "json");
+User.setProperty("fc_verify_index", index + 1, "integer");
+Bot.runCommand("_check_fc_step");
+
+
+--- _pay_approve.js ---
+
+Bot.sendMessage('Enter amount of points to ADD to user ' + params + ':');
+User.setProperty('targetApprove', params, 'string');
+Bot.runCommand('/do_pay_approve');
+
+
+--- _pay_reject.js ---
+
+Bot.sendMessage('Enter REASON for rejection for user ' + params + ':');
+User.setProperty('targetReject', params, 'string');
+Bot.runCommand('/do_pay_reject');
+
+
+--- _start.js ---
+
+/*CMD
+  command: /start
+  help: 
+  need_reply: false
+  auto_retry_time: 
+  folder: 
+CMD*/
+if (!options || !options.is_verified) {
+    Bot.runCommand("verify_force_join");
+    return;
+}
+
+let isUser = User.getProperty('isUser');
+if (!isUser) {
+    User.setProperty('isUser', true, 'boolean');
+    Bot.setProperty('balance_' + user.telegramid, 0, 'integer');
+
+    
+    if (message && message.includes(' ')) {
+        let refId = message.split(' ')[1];
+        if (refId != user.telegramid) {
+            User.setProperty('referredBy', refId, 'string');
+            let referPoint = Bot.getProperty('referPoint', 2);
+            let refBal = Bot.getProperty('balance_' + refId, 0);
+            Bot.setProperty('balance_' + refId, refBal + referPoint, 'integer');
+            Api.sendMessage({
+                chat_id: refId,
+                text: 'ðŸŽ‰ You got ' + referPoint + ' point(s) for a new referral!'
+            });
+            let refs = Bot.getProperty('refs_' + refId, 0);
+            Bot.setProperty('refs_' + refId, refs + 1, 'integer');
+        }
+    }
+    let totalUsers = Bot.getProperty('totalUsers', 0);
+    Bot.setProperty('totalUsers', totalUsers + 1, 'integer');
+}
+
+let defaultWelcome = 'ðŸ–¥ï¸ FREE + PAID RDP AVAILABLE\nðŸ†“ Free RDP â€” limited availability\nðŸ’Ž Premium RDP â€” faster & more stable servers\nâš¡ Windows RDP | Linux VPS\nðŸ¤– Fully automated Telegram bot\nðŸ” Secure & reliable service\n\nðŸš€ Start the bot and choose your plan!';
+let welcomeText = Bot.getProperty('welcomeText', defaultWelcome);
+if(welcomeText.includes('{name}')) {
+    welcomeText = welcomeText.replace('{name}', user.first_name);
+}
+
+let keyboard = "ðŸ‘¤ Account, ðŸŽ Refer\nðŸ§ Withdraw, ðŸ“Š Statistics\nðŸŽ§ Support (Ticket), ðŸ–¥ Buy Private RDP\nðŸ“¦ My Orders";
+Bot.sendKeyboard(keyboard, welcomeText);
+
+
+--- _upload_payment.js ---
+
+Bot.sendMessage('ðŸ“¤ Please **upload the payment screenshot** now:');
+Bot.runCommand('/do_receive_payment');
+
+
+--- 🎁 Refer.js ---
+
+let pt = Bot.getProperty('referPoint', 2);
+let refLink = 'https://t.me/' + bot.name + '?start=' + user.telegramid;
+let refTxt = 'ðŸŽ **REFERRAL SYSTEM**\n\nShare your link to earn points!\nYou earn ' + pt + ' point(s) per friend.\n\nðŸ”— Your link: ' + refLink;
+Bot.sendMessage(refTxt);
+
+
+--- 🎧 Support (Ticket).js ---
+
+let supT = Bot.getProperty('supportText', 'ðŸŽŸ <b>SUPPORT & HELP CENTER</b>\n\nðŸ’¬ For direct support, contact: <b>@CLOUD_RDP_MARKET_BOT</b>\n\nâœ… <b>Support Ticket Opened!</b>\nYou can also send your query, message, or screenshot directly here and the admin will reply to you.');
+User.setProperty('ticketStatus', 'open', 'string');
+Bot.sendMessage(supT);
+
+
+--- 🏧 Withdraw.js ---
+
+let curBal = Bot.getProperty('balance_' + user.telegramid);
+if (curBal === undefined) { curBal = User.getProperty('balance', 0); Bot.setProperty('balance_' + user.telegramid, curBal, 'integer'); }
+let wText = 'ðŸ’° Your Balance: ' + curBal + ' Points\n\nðŸ‘‘ RDP / VPS PLANS\nðŸ‘‡ Click a button below to purchase using points:';
+let wKb = [
+    [{title: 'âš¡ 2GB RDP â€” 40 Points', command: '/claim 40 2GB_RDP'}],
+    [{title: 'ðŸ”¥ 3GB RDP â€” 60 Points', command: '/claim 60 3GB_RDP'}],
+    [{title: 'âš¡ 4GB RDP â€” 80 Points', command: '/claim 80 4GB_RDP'}],
+    [{title: 'ðŸ”¥ 6GB RDP â€” 100 Points', command: '/claim 100 6GB_RDP'}],
+    [{title: 'ðŸš€ 8GB (PRO) RDP â€” 120 Points', command: '/claim 120 8GB_RDP'}]
+];
+Bot.sendInlineKeyboard(wKb, wText);
+
+
+--- 👤 Account.js ---
+
+let balance = Bot.getProperty('balance_' + user.telegramid);
+if (balance === undefined) { balance = User.getProperty('balance', 0); Bot.setProperty('balance_' + user.telegramid, balance, 'integer'); }
+let accTxt = 'ðŸ‘¤ **USER CONSOLE**\n\nNAME: ' + user.first_name + '\nUSER ID: `' + user.telegramid + '`\nBALANCE: ' + balance + ' Points';
+Bot.sendMessage(accTxt);
+
+
+--- 📊 Statistics.js ---
+
+let totalUsr = Bot.getProperty('totalUsers', 0);
+let statTxt = 'â•”â•â•ã€Ž ðŸš€ Ê€á´‡á´€ÊŸ-á´›Éªá´á´‡ êœ±Êêœ±á´›á´‡á´ êœ±á´›á´€á´›êœ± ã€â•â•â•—\n\nâœ¦ Ê™á´á´› : @' + bot.name + '\nâœ¦ á´›á´á´›á´€ÊŸ á´á´‡á´Ê™á´‡Ê€êœ± : ' + totalUsr + '\nâœ¦ á´…á´‡á´ á´‡ÊŸá´á´˜á´‡Ê€ : @INVALID_BHAII\n\nâœ¦ É´á´‡á´›á´¡á´Ê€á´‹ : @technicalKali\n\nâœ¦ Ê€á´‡êœ°á´‡Ê€, á´‡á´€Ê€É´ & á´›á´€á´‹á´‡ Ê€á´…á´˜ !\n\nâ•šâ•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•';
+Bot.sendMessage(statTxt);
+
+
+--- 📦 My Orders.js ---
+
+let ords = User.getProperty('myOrders', []);
+if (ords.length == 0) {
+    Bot.sendMessage('You have no orders yet.');
+    return;
+}
+let ordText = 'ðŸ“¦ **Your Orders**\n\n';
+for(let i=0; i<ords.length; i++){
+    ordText += 'Order #' + ords[i].orderId + ' - ' + ords[i].product + ' (' + ords[i].status + ')\nKey: `' + ords[i].key + '`\n\n';
+}
+Bot.sendMessage(ordText);
+
+
+--- 🖥 Buy Private RDP.js ---
+
+let defRdp = 'â•”â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•—\nðŸ’­RDP / VPS SELLðŸ’­\nâ•šâ•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•\n\nðŸ‘‘ WINDOWS RDP\nâ¤ï¸ðŸ”¥ 2GB RAM â€” â‚¹90/MONTH ðŸ’¸\nâ¤ï¸ðŸ”¥ 4GB RAM â€” â‚¹140/MONTHðŸ’¸\nâ¤ï¸ðŸ”¥ 8GB RAM â€” â‚¹250/MONTHðŸ’¸\n\nðŸ‘‘ VPS SERVER\nðŸ’€ 2GB RAM â€” â‚¹120/MONTHðŸ’¸\nðŸ’€ 4GB RAM â€” â‚¹160/MONTHðŸ’¸\nðŸ’€ 8GB RAM â€” â‚¹290/MONTHðŸ’¸\n\nðŸ”¥ FEATURES\nâž¡ï¸ Full Admin / Root Access\nâž¡ï¸ Fast NVMe SSD\nâž¡ï¸ Instant Delivery\n\nâ˜„ï¸ ORDER NOW\nðŸ’¬ @CLOUD_RDP_MARKET_BOT';
+let rdpT = Bot.getProperty('rdpText', defRdp);
+Bot.sendMessage(rdpT);
