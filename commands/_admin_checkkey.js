@@ -1,2 +1,9 @@
-Bot.sendMessage('🔍 **Send the Key you want to verify**:\nExample: KEY-A3F1-9B2C-4E8D');
-Bot.runCommand('/do_checkkey');
+/*CMD
+  command: /admin_checkkey
+  help: 
+  need_reply: false
+  auto_retry_time: 
+  folder: 
+CMD*/
+Bot.sendMessage('🔍 Send the key you want to verify...\nExample: KEY-A3F-...');
+User.setProperty('ADMIN_STATE', 'CHECK_KEY', 'string');

@@ -1,12 +1,11 @@
-﻿import os
+import os
 
-commands_dir = 'c:\\Users\\pawan\\Downloads\\promo\\commands'
+commands_dir = r'c:\Users\pawan\Downloads\promo\commands'
 
 def write_file(name, content):
     with open(os.path.join(commands_dir, name), 'w', encoding='utf-8') as f:
         f.write(content)
 
-# 1. Update _admin_*.js to set state instead of Bot.runCommand
 admin_cmds = {
     '_admin_addpoints.js': "Bot.sendMessage('➕ Send User ID and Points to add (Format: UserID Points)');\nUser.setProperty('ADMIN_STATE', 'ADD_POINTS', 'string');",
     '_admin_rmpoints.js': "Bot.sendMessage('➖ Send User ID and Points to remove (Format: UserID Points)');\nUser.setProperty('ADMIN_STATE', 'RM_POINTS', 'string');",
@@ -18,10 +17,14 @@ admin_cmds = {
 }
 
 for file, content in admin_cmds.items():
-    write_file(file, "/*CMD\n  command: /" + file.replace('.js', '').replace('_', '', 1) + "\n  help: \n  need_reply: false\n  auto_retry_time: \n  folder: \nCMD*/\n" + content)
+    cmd_name = file.replace('.js', '').replace('_', '', 1)
+    if cmd_name == 'admin_checkkey':
+        cmd_name = 'admin_checkkey'
+    
+    header = f"/*CMD\n  command: /{cmd_name}\n  help: \n  need_reply: false\n  auto_retry_time: \n  folder: \nCMD*/\n"
+    write_file(file, header + content)
 
-# 2. Rewrite all.js to act as state handler and ignore force channels (since synchronous api is impossible)
-all_js_content = \"\"\"/*CMD
+all_js_content = """/*CMD
   command: *
   help: 
   need_reply: false
@@ -90,11 +93,28 @@ if (state == 'BROADCAST') {
     User.setProperty('ADMIN_STATE', '', 'string');
     return;
 }
-\"\"\"
+
+if (state == 'ADD_CHANNEL') {
+    if (message == '/remove_channel') {
+        Bot.setProperty('forceChannels', [], 'json');
+        Bot.sendMessage('✅ Force channels removed.');
+    } else {
+        let inp = message.split(' ');
+        if (inp.length >= 2) {
+            let ch = Bot.getProperty('forceChannels', []);
+            ch.push({id: inp[0], url: inp[1], name: inp[0]});
+            Bot.setProperty('forceChannels', ch, 'json');
+            Bot.sendMessage('✅ Force channel added!');
+        } else {
+            Bot.sendMessage('❌ Invalid format.');
+        }
+    }
+    User.setProperty('ADMIN_STATE', '', 'string');
+    return;
+}
+"""
 write_file('all.js', all_js_content)
 
-# Clean up the old _do_ files as they are no longer needed!
 import glob
 for f in glob.glob(os.path.join(commands_dir, '_do_*.js')):
     os.remove(f)
-
