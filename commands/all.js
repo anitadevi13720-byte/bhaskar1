@@ -69,19 +69,35 @@ if (state == 'BROADCAST') {
 }
 
 if (state == 'ADD_CHANNEL') {
-    if (message == '/remove_channel') {
-        Bot.setProperty('forceChannels', [], 'json');
-        Bot.sendMessage('✅ Force channels removed.');
+    let inp = message.split(' ');
+    if (inp.length >= 2) {
+        let ch = Bot.getProperty('forceChannels', []);
+        ch.push({id: inp[0], url: inp[1], name: inp[0], type: "Channel", enabled: true});
+        Bot.setProperty('forceChannels', ch, 'json');
+        Bot.sendMessage('✅ Force channel added!');
     } else {
-        let inp = message.split(' ');
-        if (inp.length >= 2) {
-            let ch = Bot.getProperty('forceChannels', []);
-            ch.push({id: inp[0], url: inp[1], name: inp[0]});
-            Bot.setProperty('forceChannels', ch, 'json');
-            Bot.sendMessage('✅ Force channel added!');
+        Bot.sendMessage('❌ Invalid format.');
+    }
+    User.setProperty('ADMIN_STATE', '', 'string');
+    return;
+}
+
+if (state == 'REMOVE_CHANNEL') {
+    let ch = Bot.getProperty('forceChannels', []);
+    let newCh = [];
+    let found = false;
+    for (let i = 0; i < ch.length; i++) {
+        if (ch[i].id != message && ch[i].name != message) {
+            newCh.push(ch[i]);
         } else {
-            Bot.sendMessage('❌ Invalid format.');
+            found = true;
         }
+    }
+    if (found) {
+        Bot.setProperty('forceChannels', newCh, 'json');
+        Bot.sendMessage('✅ Force channel removed!');
+    } else {
+        Bot.sendMessage('❌ Channel not found.');
     }
     User.setProperty('ADMIN_STATE', '', 'string');
     return;

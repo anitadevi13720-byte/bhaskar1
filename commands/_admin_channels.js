@@ -5,5 +5,13 @@
   auto_retry_time: 
   folder: 
 CMD*/
-Bot.sendMessage('📣 Send Channel ID/Username and URL to add (Format: @channel https://t.me/channel) or use /remove_channel');
-User.setProperty('ADMIN_STATE', 'ADD_CHANNEL', 'string');
+let buttons = [
+    [{ text: "➕ Add Channel", callback_data: "/admin_fc_add" }],
+    [{ text: "➖ Remove Channel", callback_data: "/admin_fc_remove" }],
+    [{ text: "📋 List Channels", callback_data: "/admin_fc_list" }]
+];
+Api.sendMessage({
+    text: "📣 **Force Channels Management**\nChoose an option:",
+    parse_mode: "Markdown",
+    reply_markup: { inline_keyboard: buttons }
+});
