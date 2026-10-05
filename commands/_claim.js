@@ -1,3 +1,10 @@
+/*CMD
+  command: /claim
+  help: 
+  need_reply: false
+  auto_retry_time: 
+  folder: 
+CMD*/
 let args = params.split(' ');
 let price = parseInt(args[0]);
 let prodName = args[1];

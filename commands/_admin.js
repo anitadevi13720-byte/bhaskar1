@@ -1,3 +1,10 @@
+/*CMD
+  command: /admin
+  help: 
+  need_reply: false
+  auto_retry_time: 
+  folder: 
+CMD*/
 let adminIds = ['8710308658', '8789936408'];
 if (adminIds.includes(user.telegramid.toString())) {
     let adKb = [
