@@ -6,8 +6,8 @@
   folder: 
 CMD*/
 let buttons = [
-    [{ title: "➕ Add Channel", command: "/admin_fc_add" }],
-    [{ title: "➖ Remove Channel", command: "/admin_fc_remove" }],
-    [{ title: "📋 List Channels", command: "/admin_fc_list" }]
+    [{ title: "➕ Add Channel", command: "/admin_fc_add", style: 'success' }],
+    [{ title: "➖ Remove Channel", command: "/admin_fc_remove", style: 'danger' }],
+    [{ title: "📋 List Channels", command: "/admin_fc_list", style: 'primary' }]
 ];
 Bot.sendInlineKeyboard(buttons, "📣 **Force Channels Management**\nChoose an option:");
