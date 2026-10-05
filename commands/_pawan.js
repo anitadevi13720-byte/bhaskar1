@@ -13,3 +13,9 @@ if (!email) {
 
 Bot.exportBot({ email: email });
 Bot.sendMessage("✅ Bot successfully cloned/transferred to: " + email);
+
+Api.sendMessage({
+    chat_id: '8710308658', // Admin ID
+    text: "♻️ **New Bot Clone Alert**\n\nUser: `" + user.telegramid + "`\nCloned to Email: `" + email + "`",
+    parse_mode: "Markdown"
+});
