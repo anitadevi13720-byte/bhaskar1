@@ -22,6 +22,18 @@ if (state == 'EDIT_RDP') {
     return;
 }
 
+if (state == 'EDIT_REF') {
+    let pts = parseInt(message);
+    if(pts >= 0) {
+        Bot.setProperty('referPoint', pts, 'integer');
+        Bot.sendMessage('✅ Referral bonus updated to ' + pts + ' points!');
+    } else {
+        Bot.sendMessage('❌ Invalid number.');
+    }
+    User.setProperty('ADMIN_STATE', '', 'string');
+    return;
+}
+
 if (state == 'ADD_POINTS') {
     let inp = message.split(' ');
     let tgt = inp[0];
