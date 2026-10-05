@@ -7,6 +7,7 @@ if (userBal === undefined) { userBal = User.getProperty('balance', 0); Bot.setPr
 if (userBal >= price) {
     Bot.setProperty('balance_' + user.telegramid, userBal - price, 'integer');
     let key = 'KEY-' + Math.floor(Math.random()*10000) + '-' + Math.floor(Math.random()*10000);
+    Bot.setProperty('key_' + key, 'VALID', 'string');
     
     let orderId = Bot.getProperty('lastOrderId', 1000) + 1;
     Bot.setProperty('lastOrderId', orderId, 'integer');
