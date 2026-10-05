@@ -1,4 +1,4 @@
-let isUser = User.getProperty('isUser');
+﻿let isUser = User.getProperty('isUser');
 if (!isUser) {
     User.setProperty('isUser', true, 'boolean');
     User.setProperty('balance', 0, 'integer');
@@ -24,13 +24,9 @@ if (!isUser) {
 
 let defaultWelcome = '🖥️ FREE + PAID RDP AVAILABLE\n🆓 Free RDP — limited availability\n💎 Premium RDP — faster & more stable servers\n⚡ Windows RDP | Linux VPS\n🤖 Fully automated Telegram bot\n🔐 Secure & reliable service\n\n🚀 Start the bot and choose your plan!';
 let welcomeText = Bot.getProperty('welcomeText', defaultWelcome);
-welcomeText = welcomeText.replace('{name}', user.first_name);
+if(welcomeText.includes('{name}')) {
+    welcomeText = welcomeText.replace('{name}', user.first_name);
+}
 
-let keyboard = [
-    [{title: '👤 Account', command: '👤 Account'}, {title: '🎁 Refer', command: '🎁 Refer'}],
-    [{title: '🏧 Withdraw', command: '🏧 Withdraw'}, {title: '📊 Statistics', command: '📊 Statistics'}],
-    [{title: '🎧 Support (Ticket)', command: '🎧 Support (Ticket)'}, {title: '🖥 Buy Private RDP', command: '🖥 Buy Private RDP'}],
-    [{title: '📦 My Orders', command: '📦 My Orders'}]
-];
-
+let keyboard = "👤 Account, 🎁 Refer\n🏧 Withdraw, 📊 Statistics\n🎧 Support (Ticket), 🖥 Buy Private RDP\n📦 My Orders";
 Bot.sendKeyboard(keyboard, welcomeText);
