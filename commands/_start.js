@@ -1,9 +1,21 @@
-﻿let isUser = User.getProperty('isUser');
+/*CMD
+  command: /start
+  help: 
+  need_reply: false
+  auto_retry_time: 
+  folder: 
+CMD*/
+if (!options || !options.is_verified) {
+    Bot.runCommand("verify_force_join");
+    return;
+}
+
+let isUser = User.getProperty('isUser');
 if (!isUser) {
     User.setProperty('isUser', true, 'boolean');
     User.setProperty('balance', 0, 'integer');
     
-    if (message.includes(' ')) {
+    if (message && message.includes(' ')) {
         let refId = message.split(' ')[1];
         if (refId != user.telegramid) {
             User.setProperty('referredBy', refId, 'string');
