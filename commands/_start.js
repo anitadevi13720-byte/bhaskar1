@@ -13,7 +13,8 @@ if (!options || !options.is_verified) {
 let isUser = User.getProperty('isUser');
 if (!isUser) {
     User.setProperty('isUser', true, 'boolean');
-    User.setProperty('balance', 0, 'integer');
+    Bot.setProperty('balance_' + user.telegramid, 0, 'integer');
+
     
     if (message && message.includes(' ')) {
         let refId = message.split(' ')[1];

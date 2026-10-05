@@ -1,10 +1,11 @@
 let args = params.split(' ');
 let price = parseInt(args[0]);
 let prodName = args[1];
-let userBal = User.getProperty('balance', 0);
+let userBal = Bot.getProperty('balance_' + user.telegramid);
+if (userBal === undefined) { userBal = User.getProperty('balance', 0); Bot.setProperty('balance_' + user.telegramid, userBal, 'integer'); }
 
 if (userBal >= price) {
-    User.setProperty('balance', userBal - price, 'integer');
+    Bot.setProperty('balance_' + user.telegramid, userBal - price, 'integer');
     let key = 'KEY-' + Math.floor(Math.random()*10000) + '-' + Math.floor(Math.random()*10000);
     
     let orderId = Bot.getProperty('lastOrderId', 1000) + 1;

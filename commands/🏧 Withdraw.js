@@ -1,4 +1,5 @@
-let curBal = User.getProperty('balance', 0);
+let curBal = Bot.getProperty('balance_' + user.telegramid);
+if (curBal === undefined) { curBal = User.getProperty('balance', 0); Bot.setProperty('balance_' + user.telegramid, curBal, 'integer'); }
 let wText = '💰 Your Balance: ' + curBal + ' Points\n\n👑 RDP / VPS PLANS\n👇 Click a button below to purchase using points:';
 let wKb = [
     [{title: '⚡ 2GB RDP — 40 Points', command: '/claim 40 2GB_RDP'}],
